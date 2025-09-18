@@ -1,37 +1,117 @@
-`timescale 1ns / 1ps
+`timescale 1ns/1ps
 
 module tb_alu_8bit;
-//Inputs
- reg		[7:0] a,b;
- reg 		[3:0] alu_sel;
 
-//Outputs
- wire 	[7:0] alu_out;
- wire 	  alu_cout;
- // Verilog code for ALU
- integer i;
-alu_8bit	alu_8bit_unit
-(
-	a,          // ALU operand A input
-	b,          // ALU operand B input
-	cin,        // carry-in
-	alu_sel,    // operation select (ALU function)
-	alu_out,    // ALU result output
-	alu_cout    // carry-out
-);
-	initial begin
-	// hold reset state for 100 ns.
-	  a = 8'h0A;
-	  b = 4'h02;
-	  alu_sel = 4'h0;
+  // Inputs
+  reg  [7:0] a, b;
+  reg  [3:0] alu_sel;
+  reg        cin;
 
-	  for (i=0;i<=15;i=i+1)
-	  begin
-	   alu_sel = alu_sel + 8'h01;
-	   #10;
-	  end
+  // Outputs
+  wire [7:0] alu_out;
+  wire       alu_cout;
 
-	  a = 8'hF6;
-	  b = 8'h0A;
-	end
+  // DUT
+  alu_8bit dut (
+    .a       (a),
+    .b       (b),
+    .cin     (cin),
+    .alu_sel (alu_sel),
+    .alu_out (alu_out),
+    .alu_cout(alu_cout)
+  );
+
+  // --------------------------------------------
+  // Reference model (期望值)
+  // --------------------------------------------
+  function [7:0] ref_out;
+    input [7:0] a_i, b_i;
+    input [3:0] s;
+    begin
+      case (s)
+        4'b0000: ref_out = a_i + b_i;
+        4'b0001: ref_out = a_i - b_i;
+        4'b0010: ref_out = a_i * b_i;                 // 低 8 位
+        4'b0011: ref_out = a_i / b_i;                 // 假定 b_i != 0
+        4'b0100: ref_out = a_i << 1;
+        4'b0101: ref_out = a_i >> 1;
+        4'b0110: ref_out = {a_i[6:0], a_i[7]};        // ROL 1
+        4'b0111: ref_out = {a_i[0],   a_i[7:1]};      // ROR 1
+        4'b1000: ref_out = a_i & b_i;
+        4'b1001: ref_out = a_i | b_i;
+        4'b1010: ref_out = a_i ^ b_i;
+        4'b1011: ref_out = ~(a_i | b_i);              // NOR
+        4'b1100: ref_out = ~(a_i & b_i);              // NAND
+        4'b1101: ref_out = ~(a_i ^ b_i);              // XNOR
+        4'b1110: ref_out = (a_i >  b_i) ? 8'd1 : 8'd0;
+        4'b1111: ref_out = (a_i == b_i) ? 8'd1 : 8'd0;
+        default: ref_out = a_i + b_i;
+      endcase
+    end
+  endfunction
+
+  function ref_cout;
+    input [7:0] a_i, b_i;
+    reg   [8:0] sum9;
+    begin
+      sum9    = {1'b0, a_i} + {1'b0, b_i};
+      ref_cout = sum9[8];               // carry 仅来自 a+b
+    end
+  endfunction
+
+  // --------------------------------------------
+  // Driver + Checker
+  // --------------------------------------------
+  integer i, passes, fails;
+  reg [7:0] exp_out;
+  reg       exp_cout;
+
+  task check_once;
+    begin
+      exp_out  = ref_out(a, b, alu_sel);
+      exp_cout = ref_cout(a, b);
+      #1;  // 给组合逻辑一个微小稳定时间
+
+      if (alu_out === exp_out && alu_cout === exp_cout) begin
+        passes = passes + 1;
+      end else begin
+        fails  = fails + 1;
+        $display("FAIL @t=%0t  sel=%0h  a=%02h  b=%02h  out=%02h cout=%0b  | exp_out=%02h exp_cout=%0b",
+                 $time, alu_sel, a, b, alu_out, alu_cout, exp_out, exp_cout);
+      end
+    end
+  endtask
+
+  initial begin
+    // 可选波形
+    // $dumpfile("alu_8bit.vcd");
+    // $dumpvars(0, tb_alu_8bit);
+
+    passes = 0; fails = 0;
+    cin    = 1'b0;
+
+    // 向量 1：b 用 8'h02（避免 4'h02 引发“hex 位数过多”的警告）
+    a = 8'h0A;  b = 8'h02;
+    for (i = 0; i < 16; i = i + 1) begin
+      alu_sel = i[3:0];
+      #1  check_once();
+      #9;
+    end
+
+    // 向量 2
+    a = 8'hF6;  b = 8'h0A;
+    for (i = 0; i < 16; i = i + 1) begin
+      alu_sel = i[3:0];
+      #1  check_once();
+      #9;
+    end
+
+    if (fails == 0) begin
+      $display("SUCCESS: %0d tests passed, 0 failed.", passes);
+    end else begin
+      $display("RESULT: %0d passed, %0d failed.", passes, fails);
+    end
+    $finish;
+  end
+
 endmodule
