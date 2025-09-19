@@ -1,0 +1,14 @@
+{
+	"general": {
+        "prompt": "./Dice_roller.sv",
+        "name": "top_module",
+        "testbench": "./Dice_roller_tb.sv",
+		"model_family": "ChatGPT",
+		"model_id": "gpt-4o-mini",
+		"num_candidates": 5,
+		"iterations": 2,
+        "outdir": "outputs_Dice_roller",
+        "log": "log.txt",
+		"ensemble": false
+    }
+}
