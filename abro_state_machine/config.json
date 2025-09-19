@@ -6,7 +6,7 @@
 		"model_family": "ChatGPT",
 		"model_id": "gpt-4o-mini",
 		"num_candidates": 5,
-		"iterations": 5,
+		"iterations": 3,
         "outdir": "outputs_abro_state_machine",
         "log": "log.txt",
 		"ensemble": false
