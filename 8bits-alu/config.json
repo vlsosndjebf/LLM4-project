@@ -1,14 +1,14 @@
 {
 	"general": {
-        "prompt": "./8bits_alu.sv",
-        "name": "top_module",
-        "testbench": "./8bits_alu_tb.sv",
-		"model_family": "ChatGPT",
-		"model_id": "gpt-4o-mini",
+		"prompt": "./8bits_alu.sv",
+		"name": "top_module",
+		"testbench": "./8bits_alu_tb.sv",
+		"model_family": "Gemini",
+		"model_id": "gemini-1.5-pro-latest",
 		"num_candidates": 5,
 		"iterations": 5,
-        "outdir": "outputs_8bits_alu",
-        "log": "log.txt",
+		"outdir": "outputs_8bits_alu",
+		"log": "log.txt",
 		"ensemble": false
-    }
+	}
 }
